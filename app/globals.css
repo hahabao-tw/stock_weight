@@ -1,0 +1,129 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ink: var(--ink);
+  --color-code: var(--code);
+  --color-table-header: var(--table-header);
+  --color-market-up: var(--market-up);
+  --color-market-up-strong: var(--market-up-strong);
+  --color-market-down: var(--market-down);
+  --color-market-down-strong: var(--market-down-strong);
+  --color-status-fresh: var(--status-fresh);
+  --color-status-fresh-foreground: var(--status-fresh-foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+}
+
+:root {
+  --background: #f4f6f5;
+  --foreground: #15212d;
+  --card: #ffffff;
+  --card-foreground: #15212d;
+  --popover: #ffffff;
+  --popover-foreground: #15212d;
+  --primary: #0c6471;
+  --primary-foreground: #f7ffff;
+  --secondary: #e8efef;
+  --secondary-foreground: #173b42;
+  --muted: #edf1f1;
+  --muted-foreground: #62717a;
+  --accent: #e5f0f1;
+  --accent-foreground: #124f59;
+  --destructive: #c33c49;
+  --border: #dbe2e2;
+  --input: #cfd9da;
+  --ring: #2c8792;
+  --ink: #132734;
+  --code: #116b78;
+  --table-header: #eef3f3;
+  --market-up: #ff8b95;
+  --market-up-strong: #c83442;
+  --market-down: #62d3a6;
+  --market-down-strong: #13795b;
+  --status-fresh: #dff3e9;
+  --status-fresh-foreground: #176548;
+  --font-sans: 'Noto Sans TC', 'Microsoft JhengHei', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'Cascadia Mono', Consolas, monospace;
+  --radius: 0.625rem;
+}
+
+.dark {
+  --background: #0e171e;
+  --foreground: #edf4f4;
+  --card: #14212a;
+  --card-foreground: #edf4f4;
+  --popover: #14212a;
+  --popover-foreground: #edf4f4;
+  --primary: #58b8c3;
+  --primary-foreground: #071c21;
+  --secondary: #1c3038;
+  --secondary-foreground: #dcebed;
+  --muted: #1a2a32;
+  --muted-foreground: #9aabb1;
+  --accent: #203840;
+  --accent-foreground: #d9f0f2;
+  --destructive: #f0717c;
+  --border: #2a3c44;
+  --input: #354952;
+  --ring: #6dc1ca;
+  --ink: #091319;
+  --code: #78d0d9;
+  --table-header: #192a32;
+  --market-up: #ff9ca5;
+  --market-up-strong: #ff8792;
+  --market-down: #76dcb4;
+  --market-down-strong: #6fd3ac;
+  --status-fresh: #1c4738;
+  --status-fresh-foreground: #a9e6cb;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    @apply font-sans;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    margin: 0;
+  }
+
+  button,
+  [role='checkbox'] {
+    touch-action: manipulation;
+  }
+}
+
+::selection {
+  background: color-mix(in srgb, var(--primary) 24%, transparent);
+}
