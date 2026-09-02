@@ -8,7 +8,7 @@ import {
   type CompanyInfo,
   type LimitQuote,
   type StockWeightRow,
-} from './stock-weights';
+} from './stock-weights.ts';
 
 const URLS = {
   companies: 'https://openapi.twse.com.tw/v1/opendata/t187ap03_L',
@@ -18,7 +18,8 @@ const URLS = {
 } as const;
 
 const CACHE_DURATION_MS = 15 * 60 * 1000;
-const REQUEST_TIMEOUT_MS = 20_000;
+const REQUEST_TIMEOUT_MS = 45_000;
+const MAX_REQUEST_ATTEMPTS = 3;
 
 export type WeightsPayload = {
   dataDate: string;
@@ -69,27 +70,40 @@ async function fetchOfficial<T>(
   url: string,
   readBody: (response: Response) => Promise<T>,
 ) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-  try {
-    const response = await fetch(url, {
-      headers: { Accept: 'application/json, text/html;q=0.9, */*;q=0.8' },
-      signal: controller.signal,
-    });
-    if (!response.ok) {
-      throw new Error(`${new URL(url).hostname} 回傳 HTTP ${response.status}`);
+  const source = `${new URL(url).hostname}${new URL(url).pathname}`;
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= MAX_REQUEST_ATTEMPTS; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      const response = await fetch(url, {
+        headers: { Accept: 'application/json, text/html;q=0.9, */*;q=0.8' },
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return await readBody(response);
+    } catch (error: unknown) {
+      const detail = controller.signal.aborted
+        ? `下載超過 ${REQUEST_TIMEOUT_MS / 1000} 秒`
+        : error instanceof Error
+          ? error.message
+          : '未知錯誤';
+      lastError = new Error(
+        `${source} 第 ${attempt}/${MAX_REQUEST_ATTEMPTS} 次下載失敗：${detail}。`,
+      );
+    } finally {
+      clearTimeout(timeout);
     }
-    return await readBody(response);
-  } catch (error: unknown) {
-    const source = `${new URL(url).hostname}${new URL(url).pathname}`;
-    if (controller.signal.aborted) {
-      throw new Error(`${source} 下載超過 ${REQUEST_TIMEOUT_MS / 1000} 秒。`);
+
+    if (attempt < MAX_REQUEST_ATTEMPTS) {
+      await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
     }
-    const message = error instanceof Error ? error.message : '未知錯誤';
-    throw new Error(`${source} 下載失敗：${message}`);
-  } finally {
-    clearTimeout(timeout);
   }
+
+  throw lastError ?? new Error(`${source} 下載失敗。`);
 }
 
 async function fetchJson(url: string) {

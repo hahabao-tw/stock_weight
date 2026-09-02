@@ -4,6 +4,8 @@
 
 網站固定只監聽本機 `127.0.0.1`；請勿改成對外網路服務。
 
+GitHub Pages 由 Actions 在每個交易日台北時間 18:20 左右重新抓取官方資料並發布；官方來源失敗或不足 100 檔時，該次部署會停止並保留上一版。
+
 ## 使用方式
 
 直接雙擊 `啟動網站.cmd`。瀏覽器會自動開啟 `http://localhost:3000/`；關閉啟動視窗即可停止網站。
@@ -35,6 +37,7 @@ npm test
 npm run lint
 npm run typecheck
 npm run build
+npm run build:pages
 ```
 
 測試涵蓋 TAIFEX 千分位排名、重複 HTML、交易日期不一致、資料覆蓋不足、缺少漲跌停價、價格跳動不對稱及開盤基準調整。

@@ -8,8 +8,9 @@
   "scripts": {
     "dev": "vinext dev",
     "build": "vinext build",
+    "build:pages": "vite build --config vite.pages.config.ts && node --experimental-strip-types scripts/generate-static-data.ts",
     "start": "wrangler dev --config dist/server/wrangler.json",
-    "lint": "oxlint app/page.tsx app/api/weights/route.ts lib/stock-weights.ts lib/official-market-data.ts vite.config.ts",
+    "lint": "oxlint app/page.tsx app/api/weights/route.ts lib/stock-weights.ts lib/official-market-data.ts pages/main.tsx scripts/generate-static-data.ts vite.config.ts vite.pages.config.ts",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "format": "oxfmt"

@@ -94,6 +94,18 @@ function getErrorMessage(value: unknown) {
   return '資料格式不完整，請稍後再試。';
 }
 
+function getWeightsUrl(forceRefresh: boolean) {
+  const staticDataUrl = document.querySelector<HTMLMetaElement>(
+    'meta[name="stock-weight-data-url"]',
+  )?.content;
+  if (staticDataUrl) {
+    const url = new URL(staticDataUrl, window.location.href);
+    if (forceRefresh) url.searchParams.set('v', String(Date.now()));
+    return url.toString();
+  }
+  return forceRefresh ? '/api/weights?refresh=1' : '/api/weights';
+}
+
 export default function Home() {
   const [query, setQuery] = useState('');
   const [selectedCodes, setSelectedCodes] = useState<Set<string>>(new Set());
@@ -104,10 +116,10 @@ export default function Home() {
   const loadWeights = useCallback(
     async (forceRefresh: boolean, signal?: AbortSignal) => {
       try {
-        const response = await fetch(
-          forceRefresh ? '/api/weights?refresh=1' : '/api/weights',
-          { cache: 'no-store', signal },
-        );
+        const response = await fetch(getWeightsUrl(forceRefresh), {
+          cache: 'no-store',
+          signal,
+        });
         const body: unknown = await response.json();
         if (!response.ok) throw new Error(getErrorMessage(body));
         if (!isWeightsPayload(body)) {
