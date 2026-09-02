@@ -151,24 +151,28 @@ test('漲跌停跳動單位造成不對稱時，不強制取絕對值', () => {
   );
 });
 
-test('開盤競價基準低於昨收時，漲停貢獻可為負值並標記調整', () => {
+test('除權後以開盤競價基準顯示昨收並估算正負貢獻', () => {
   const result = calculateStockWeights({
     constituents: [constituent('A', 1)],
     companies: [company('A', 1000)],
     limits: [
       quote('A', {
-        previousClose: 100,
-        referencePrice: 80,
-        limitUp: 88,
-        limitDown: 72,
+        previousClose: 7800,
+        referencePrice: 2615,
+        limitUp: 2875,
+        limitDown: 2355,
       }),
     ],
     taiexClose: 10_000,
     topCount: 1,
   });
 
-  assert.equal(result.rows[0].hasReferenceAdjustment, true);
-  assert.ok(result.rows[0].upContribution! < 0);
+  const row = result.rows[0];
+  assert.equal(row.hasReferenceAdjustment, true);
+  assert.equal(row.previousClose, 2615);
+  assert.equal(row.rawPreviousClose, 7800);
+  assert.ok(Math.abs(row.upContribution! - (10_000 * 260) / 2615) < 1e-9);
+  assert.ok(Math.abs(row.downContribution! + (10_000 * 260) / 2615) < 1e-9);
 });
 
 test('缺少漲跌停價時保留股票，但貢獻顯示空值', () => {

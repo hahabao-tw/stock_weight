@@ -392,7 +392,7 @@ export default function Home() {
                 <TableHead className="text-right">市值</TableHead>
                 <TableHead className="text-right">占大盤比重</TableHead>
                 <TableHead className="text-right">累加比重</TableHead>
-                <TableHead className="text-right">昨收</TableHead>
+                <TableHead className="text-right">昨收／基準</TableHead>
                 <TableHead className="text-right">漲停價</TableHead>
                 <TableHead className="text-right">漲停貢獻</TableHead>
                 <TableHead className="text-right">跌停價</TableHead>
@@ -441,7 +441,7 @@ export default function Home() {
                           className="text-right font-mono font-semibold tabular-nums"
                           title={
                             row.hasReferenceAdjustment
-                              ? `今日開盤競價基準價 ${formatNullable(row.referencePrice)}，與昨收不同`
+                              ? `前一日收盤 ${priceFormatter.format(row.rawPreviousClose)}；今日開盤競價基準 ${formatNullable(row.referencePrice)}，表內依基準價顯示`
                               : undefined
                           }
                         >
@@ -510,10 +510,10 @@ export default function Home() {
 
           <footer className="space-y-1 border-t bg-muted/25 px-4 py-3 text-[11px] leading-5 text-muted-foreground">
             <p>
-              市值與權重依「已發行普通股數－私募股數」× 昨收每日重算；TAIFEX 清單每月底更新。
+              市值與權重依「已發行普通股數－私募股數」× 前一日收盤每日重算；TAIFEX 清單每月底更新。
             </p>
             <p>
-              貢獻點數＝指數有效股數 ×（漲跌停價－昨收）÷ 估算指數除數。＊若開盤競價基準價與昨收不同，漲停貢獻未必為正值。
+              貢獻點數＝個股權重 × 加權昨收 ×（漲跌停價 ÷ 昨收基準－1）。＊表示除權息等事件調整過基準價。
             </p>
             <p>
               資料來源：

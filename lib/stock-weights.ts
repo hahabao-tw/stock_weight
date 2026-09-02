@@ -28,6 +28,7 @@ export type StockWeightRow = {
   weight: number;
   cumulativeWeight: number;
   previousClose: number;
+  rawPreviousClose: number;
   referencePrice: number | null;
   limitUp: number | null;
   upContribution: number | null;
@@ -206,7 +207,6 @@ export function calculateStockWeights({
   const pricedRows: Array<{
     constituent: TaifexConstituent;
     quote: LimitQuote;
-    issuedShares: number;
     marketCapRaw: number;
   }> = [];
 
@@ -230,7 +230,6 @@ export function calculateStockWeights({
     pricedRows.push({
       constituent,
       quote,
-      issuedShares: indexShares,
       marketCapRaw,
     });
   }
@@ -261,17 +260,21 @@ export function calculateStockWeights({
       const weight = (item.marketCapRaw / totalMarketCapRaw) * 100;
       cumulativeWeight += weight;
       const { quote } = item;
+      const priceBasis =
+        quote.referencePrice !== null && quote.referencePrice > 0
+          ? quote.referencePrice
+          : quote.previousClose!;
       const upContribution =
         quote.limitUp === null
           ? null
-          : (item.issuedShares *
-              (quote.limitUp - quote.previousClose!)) /
+          : (item.marketCapRaw *
+              ((quote.limitUp - priceBasis) / priceBasis)) /
             divisorEstimate;
       const downContribution =
         quote.limitDown === null
           ? null
-          : (item.issuedShares *
-              (quote.limitDown - quote.previousClose!)) /
+          : (item.marketCapRaw *
+              ((quote.limitDown - priceBasis) / priceBasis)) /
             divisorEstimate;
 
       return {
@@ -281,15 +284,15 @@ export function calculateStockWeights({
         marketCap: item.marketCapRaw / 100_000_000,
         weight,
         cumulativeWeight,
-        previousClose: quote.previousClose!,
+        previousClose: priceBasis,
+        rawPreviousClose: quote.previousClose!,
         referencePrice: quote.referencePrice,
         limitUp: quote.limitUp,
         upContribution,
         limitDown: quote.limitDown,
         downContribution,
         hasReferenceAdjustment:
-          quote.referencePrice !== null &&
-          Math.abs(quote.referencePrice - quote.previousClose!) > 0.000_001,
+          Math.abs(priceBasis - quote.previousClose!) > 0.000_001,
         officialMonthlyWeight: item.constituent.officialWeight,
       };
     });
