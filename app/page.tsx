@@ -1,12 +1,14 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   BarChart3,
   Database,
+  Moon,
   RefreshCw,
   Search,
+  Sun,
   X,
 } from 'lucide-react';
 
@@ -112,6 +114,8 @@ export default function Home() {
   const [payload, setPayload] = useState<WeightsPayload | null>(null);
   const [refreshing, setRefreshing] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const largeTextButtonRef = useRef<HTMLButtonElement>(null);
+  const themeButtonRef = useRef<HTMLButtonElement>(null);
 
   const loadWeights = useCallback(
     async (forceRefresh: boolean, signal?: AbortSignal) => {
@@ -150,6 +154,36 @@ export default function Home() {
     },
     [],
   );
+
+  useEffect(() => {
+    let prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    let prefersLargeText = false;
+
+    try {
+      const savedTheme = window.localStorage.getItem('stock-weight-theme');
+      const savedTextSize = window.localStorage.getItem(
+        'stock-weight-large-text',
+      );
+      if (savedTheme) prefersDark = savedTheme === 'dark';
+      prefersLargeText = savedTextSize === 'true';
+    } catch {
+      // Storage may be unavailable in privacy mode; the controls still work.
+    }
+
+    document.documentElement.classList.toggle('dark', prefersDark);
+    document.documentElement.classList.toggle(
+      'font-large',
+      prefersLargeText,
+    );
+    largeTextButtonRef.current?.setAttribute(
+      'aria-pressed',
+      String(prefersLargeText),
+    );
+    themeButtonRef.current?.setAttribute(
+      'aria-pressed',
+      String(prefersDark),
+    );
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -200,6 +234,35 @@ export default function Home() {
     void loadWeights(true);
   }
 
+  function toggleLargeText() {
+    const nextValue = document.documentElement.classList.toggle('font-large');
+    largeTextButtonRef.current?.setAttribute(
+      'aria-pressed',
+      String(nextValue),
+    );
+    try {
+      window.localStorage.setItem(
+        'stock-weight-large-text',
+        String(nextValue),
+      );
+    } catch {
+      // Keep the current-session setting when storage is unavailable.
+    }
+  }
+
+  function toggleTheme() {
+    const nextValue = document.documentElement.classList.toggle('dark');
+    themeButtonRef.current?.setAttribute('aria-pressed', String(nextValue));
+    try {
+      window.localStorage.setItem(
+        'stock-weight-theme',
+        nextValue ? 'dark' : 'light',
+      );
+    } catch {
+      // Keep the current-session setting when storage is unavailable.
+    }
+  }
+
   const statusLabel = refreshing
     ? '更新中'
     : error && !payload
@@ -211,8 +274,8 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border bg-card">
-        <div className="mx-auto flex max-w-[1800px] items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <div className="flex min-w-0 items-center gap-3">
+        <div className="mx-auto flex max-w-[1800px] items-center justify-between gap-2 px-2 py-2 sm:gap-4 sm:px-4">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground shadow-sm">
               <BarChart3 className="size-5" aria-hidden="true" />
             </span>
@@ -225,25 +288,55 @@ export default function Home() {
               </p>
             </div>
           </div>
-          <div className="hidden items-center gap-2 text-xs text-muted-foreground md:flex">
-            <Database className="size-3.5" aria-hidden="true" />
-            <span>市場資料 {formatDate(payload?.dataDate)}</span>
-            <Badge
-              className={
-                error && !payload
-                  ? 'bg-destructive/10 text-destructive'
-                  : 'bg-status-fresh text-status-fresh-foreground'
-              }
+          <div className="flex shrink-0 items-center gap-1.5">
+            <div className="mr-1 hidden items-center gap-2 text-xs text-muted-foreground md:flex">
+              <Database className="size-3.5" aria-hidden="true" />
+              <span>市場資料 {formatDate(payload?.dataDate)}</span>
+              <Badge
+                className={
+                  error && !payload
+                    ? 'bg-destructive/10 text-destructive'
+                    : 'bg-status-fresh text-status-fresh-foreground'
+                }
+              >
+                {statusLabel}
+              </Badge>
+            </div>
+            <Button
+              ref={largeTextButtonRef}
+              data-font-size-toggle
+              variant="outline"
+              size="icon-lg"
+              className="size-11"
+              onClick={toggleLargeText}
+              aria-label="切換標準或放大字體"
+              aria-pressed="false"
+              title="切換字體大小"
             >
-              {statusLabel}
-            </Badge>
+              <span className="font-mono text-sm font-bold" aria-hidden="true">
+                A+
+              </span>
+            </Button>
+            <Button
+              ref={themeButtonRef}
+              variant="outline"
+              size="icon-lg"
+              className="size-11"
+              onClick={toggleTheme}
+              aria-label="切換日間或夜間模式"
+              aria-pressed="false"
+              title="切換日夜模式"
+            >
+              <Sun className="hidden size-5 dark:block" aria-hidden="true" />
+              <Moon className="size-5 dark:hidden" aria-hidden="true" />
+            </Button>
           </div>
         </div>
       </header>
 
-      <div className="mx-auto max-w-[1800px] px-4 py-4 sm:px-6 sm:py-5">
-        <section className="mb-4 grid gap-3 xl:grid-cols-[minmax(340px,1fr)_auto]">
-          <div className="flex flex-col justify-between gap-3 rounded-xl border bg-card p-3 shadow-sm sm:flex-row sm:items-center">
+      <div className="mx-auto max-w-[1800px] px-2 py-3 sm:px-4 sm:py-4">
+        <section className="mb-3 grid gap-2 xl:grid-cols-[minmax(340px,1fr)_auto]">
+          <div className="flex flex-col justify-between gap-2 rounded-lg border bg-card p-2 shadow-sm sm:flex-row sm:items-center">
             <div className="relative w-full max-w-md">
               <Search
                 className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
@@ -267,7 +360,7 @@ export default function Home() {
                 </button>
               ) : null}
             </div>
-            <div className="flex items-center justify-between gap-3 sm:justify-end">
+            <div className="flex items-center justify-between gap-2 sm:justify-end">
               <div className="text-xs leading-5 text-muted-foreground">
                 <span className="block md:hidden">
                   市場資料 {formatDate(payload?.dataDate)}
@@ -290,7 +383,7 @@ export default function Home() {
           </div>
 
           <aside
-            className="grid min-w-[450px] grid-cols-[minmax(180px,1fr)_140px_140px] overflow-hidden rounded-xl border bg-ink text-white shadow-sm max-xl:min-w-0 max-sm:grid-cols-2"
+            className="grid min-w-[450px] grid-cols-[minmax(180px,1fr)_140px_140px] overflow-hidden rounded-lg border bg-ink text-white shadow-sm max-xl:min-w-0 max-sm:grid-cols-2"
             aria-label="已選股票貢獻合計"
           >
             <div className="border-white/10 p-3 max-sm:col-span-2 sm:border-r">
@@ -355,14 +448,14 @@ export default function Home() {
         ) : null}
 
         {payload?.warnings.length ? (
-          <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-100">
             <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
             <span>{payload.warnings.join('；')}</span>
           </div>
         ) : null}
 
-        <section className="overflow-hidden rounded-xl border bg-card shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-2.5">
+        <section className="overflow-hidden rounded-lg border bg-card shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b px-2 py-2 sm:px-3">
             <div>
               <h2 className="text-sm font-bold">權值排行</h2>
               <p className="text-xs text-muted-foreground" aria-live="polite">
@@ -383,21 +476,25 @@ export default function Home() {
             </div>
           </div>
 
-          <Table className="min-w-[1450px] text-xs">
+          <Table className="w-max border-collapse text-sm leading-5 [&_td]:border-r [&_td]:px-1.5 [&_td:last-child]:border-r-0 [&_th]:border-r [&_th]:px-1.5 [&_th:last-child]:border-r-0">
             <TableHeader className="sticky top-0 z-10 bg-table-header">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="w-14 text-center">排名</TableHead>
-                <TableHead className="w-20">代碼</TableHead>
-                <TableHead className="w-32">公司名稱</TableHead>
-                <TableHead className="text-right">市值</TableHead>
-                <TableHead className="text-right">占大盤比重</TableHead>
-                <TableHead className="text-right">累加比重</TableHead>
-                <TableHead className="text-right">昨收／基準</TableHead>
-                <TableHead className="text-right">漲停價</TableHead>
-                <TableHead className="text-right">漲停貢獻</TableHead>
-                <TableHead className="text-right">跌停價</TableHead>
-                <TableHead className="text-right">跌停貢獻</TableHead>
-                <TableHead className="sticky right-0 z-20 w-16 bg-table-header text-center">
+                <TableHead className="w-11 text-center">排名</TableHead>
+                <TableHead className="w-14">代碼</TableHead>
+                <TableHead className="w-24">公司名稱</TableHead>
+                <TableHead className="w-20 text-right text-market-up-strong">
+                  漲停影響
+                </TableHead>
+                <TableHead className="w-20 text-right text-market-down-strong">
+                  跌停影響
+                </TableHead>
+                <TableHead className="w-20 text-right">市值</TableHead>
+                <TableHead className="w-20 text-right">大盤比重</TableHead>
+                <TableHead className="w-20 text-right">累加比重</TableHead>
+                <TableHead className="w-20 text-right">昨收／基準</TableHead>
+                <TableHead className="w-16 text-right">漲停價</TableHead>
+                <TableHead className="w-16 text-right">跌停價</TableHead>
+                <TableHead className="sticky right-0 z-20 w-12 border-l bg-table-header text-center shadow-[-4px_0_8px_-6px_rgba(0,0,0,0.45)]">
                   選取
                 </TableHead>
               </TableRow>
@@ -428,6 +525,16 @@ export default function Home() {
                           {row.code}
                         </TableCell>
                         <TableCell className="font-semibold">{row.name}</TableCell>
+                        <TableCell
+                          className={`text-right font-mono font-bold tabular-nums ${contributionClass(row.upContribution)}`}
+                        >
+                          {formatSigned(row.upContribution)}
+                        </TableCell>
+                        <TableCell
+                          className={`text-right font-mono font-bold tabular-nums ${contributionClass(row.downContribution)}`}
+                        >
+                          {formatSigned(row.downContribution)}
+                        </TableCell>
                         <TableCell className="text-right font-mono tabular-nums">
                           {decimalFormatter.format(row.marketCap)}
                         </TableCell>
@@ -453,20 +560,10 @@ export default function Home() {
                         <TableCell className="text-right font-mono tabular-nums text-market-up-strong">
                           {formatNullable(row.limitUp)}
                         </TableCell>
-                        <TableCell
-                          className={`text-right font-mono font-bold tabular-nums ${contributionClass(row.upContribution)}`}
-                        >
-                          {formatSigned(row.upContribution)}
-                        </TableCell>
                         <TableCell className="text-right font-mono tabular-nums text-market-down-strong">
                           {formatNullable(row.limitDown)}
                         </TableCell>
-                        <TableCell
-                          className={`text-right font-mono font-bold tabular-nums ${contributionClass(row.downContribution)}`}
-                        >
-                          {formatSigned(row.downContribution)}
-                        </TableCell>
-                        <TableCell className="sticky right-0 bg-card text-center [tr[data-state=selected]_&]:bg-muted">
+                        <TableCell className="sticky right-0 border-l bg-card text-center shadow-[-4px_0_8px_-6px_rgba(0,0,0,0.45)] [tr[data-state=selected]_&]:bg-muted">
                           <Checkbox
                             checked={checked}
                             onCheckedChange={(value) =>
@@ -508,7 +605,7 @@ export default function Home() {
             </div>
           ) : null}
 
-          <footer className="space-y-1 border-t bg-muted/25 px-4 py-3 text-[11px] leading-5 text-muted-foreground">
+          <footer className="space-y-1 border-t bg-muted/25 px-3 py-3 text-xs leading-5 text-muted-foreground">
             <p>
               市值與權重依「已發行普通股數－私募股數」× 前一日收盤每日重算；TAIFEX 清單每月底更新。
             </p>
