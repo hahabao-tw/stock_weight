@@ -272,18 +272,27 @@ export default function Home() {
         : '已同步';
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border bg-card">
+    <main className="market-shell min-h-screen bg-background text-foreground">
+      <div className="market-atmosphere" aria-hidden="true">
+        <span className="energy-orb energy-orb-one" />
+        <span className="energy-orb energy-orb-two" />
+        <span className="energy-beam" />
+      </div>
+
+      <header className="hud-header sticky top-0 z-50 border-b border-border">
         <div className="mx-auto flex max-w-[1800px] items-center justify-between gap-2 px-2 py-2 sm:gap-4 sm:px-4">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground shadow-sm">
+            <span className="hud-emblem grid size-10 shrink-0 place-items-center bg-primary text-primary-foreground">
               <BarChart3 className="size-5" aria-hidden="true" />
             </span>
             <div className="min-w-0">
-              <h1 className="truncate text-base font-bold tracking-tight sm:text-lg">
+              <p className="hud-kicker hidden text-[10px] font-semibold uppercase sm:block">
+                TAIEX IMPACT // TOP 100
+              </p>
+              <h1 className="truncate text-base font-bold tracking-wide sm:text-lg">
                 加權指數權值表
               </h1>
-              <p className="truncate text-xs text-muted-foreground">
+              <p className="truncate text-[11px] text-muted-foreground sm:text-xs">
                 前 100 大 · 漲跌停貢獻點數估算
               </p>
             </div>
@@ -307,7 +316,7 @@ export default function Home() {
               data-font-size-toggle
               variant="outline"
               size="icon-lg"
-              className="size-11"
+              className="fx-button size-11"
               onClick={toggleLargeText}
               aria-label="切換標準或放大字體"
               aria-pressed="false"
@@ -321,7 +330,7 @@ export default function Home() {
               ref={themeButtonRef}
               variant="outline"
               size="icon-lg"
-              className="size-11"
+              className="fx-button size-11"
               onClick={toggleTheme}
               aria-label="切換日間或夜間模式"
               aria-pressed="false"
@@ -334,9 +343,9 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-[1800px] px-2 py-3 sm:px-4 sm:py-4">
+      <div className="relative z-10 mx-auto max-w-[1800px] px-2 py-3 sm:px-4 sm:py-4">
         <section className="mb-3 grid gap-2 xl:grid-cols-[minmax(340px,1fr)_auto]">
-          <div className="flex flex-col justify-between gap-2 rounded-lg border bg-card p-2 shadow-sm sm:flex-row sm:items-center">
+          <div className="hud-panel flex flex-col justify-between gap-2 border bg-card p-2 sm:flex-row sm:items-center">
             <div className="relative w-full max-w-md">
               <Search
                 className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
@@ -347,13 +356,13 @@ export default function Home() {
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="輸入股票代碼或公司名稱"
                 aria-label="搜尋股票"
-                className="h-9 bg-background pl-9 pr-9"
+                className="hud-input h-11 bg-background/70 pl-9 pr-9"
               />
               {query ? (
                 <button
                   type="button"
                   onClick={() => setQuery('')}
-                  className="absolute right-2 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                  className="icon-reaction absolute right-1.5 top-1/2 grid size-8 -translate-y-1/2 place-items-center text-muted-foreground hover:text-foreground"
                   aria-label="清除搜尋"
                 >
                   <X className="size-3.5" />
@@ -369,7 +378,8 @@ export default function Home() {
               </div>
               <Button
                 variant="outline"
-                size="sm"
+                size="lg"
+                className="fx-button h-11 px-3"
                 disabled={refreshing}
                 onClick={refreshWeights}
               >
@@ -383,8 +393,9 @@ export default function Home() {
           </div>
 
           <aside
-            className="grid min-w-[450px] grid-cols-[minmax(180px,1fr)_140px_140px] overflow-hidden rounded-lg border bg-ink text-white shadow-sm max-xl:min-w-0 max-sm:grid-cols-2"
+            className="impact-console grid min-w-[450px] grid-cols-[minmax(180px,1fr)_140px_140px] overflow-hidden border text-white max-xl:min-w-0 max-sm:grid-cols-2"
             aria-label="已選股票貢獻合計"
+            aria-live="polite"
           >
             <div className="border-white/10 p-3 max-sm:col-span-2 sm:border-r">
               <div className="flex items-center justify-between gap-3">
@@ -395,7 +406,7 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={() => setSelectedCodes(new Set())}
-                    className="text-xs text-white/60 hover:text-white"
+                    className="micro-action text-xs text-white/60 hover:text-white"
                   >
                     清除
                   </button>
@@ -414,7 +425,7 @@ export default function Home() {
                   : '從表格右側勾選股票'}
               </p>
             </div>
-            <div className="border-l border-white/10 p-3 max-sm:border-l-0 max-sm:border-t">
+            <div className="impact-stat impact-stat-up border-l border-white/10 p-3 max-sm:border-l-0 max-sm:border-t">
               <span className="text-xs text-white/55">全數漲停</span>
               <p
                 className={`mt-0.5 font-mono text-lg font-bold tabular-nums ${
@@ -424,7 +435,7 @@ export default function Home() {
                 {formatSigned(totalUp)}
               </p>
             </div>
-            <div className="border-l border-white/10 p-3 max-sm:border-t">
+            <div className="impact-stat impact-stat-down border-l border-white/10 p-3 max-sm:border-t">
               <span className="text-xs text-white/55">全數跌停</span>
               <p
                 className={`mt-0.5 font-mono text-lg font-bold tabular-nums ${
@@ -439,7 +450,7 @@ export default function Home() {
 
         {error ? (
           <div
-            className="mb-3 flex items-start gap-2 rounded-lg border border-destructive/25 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+            className="alert-hud mb-3 flex items-start gap-2 border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
             role="alert"
           >
             <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
@@ -448,13 +459,13 @@ export default function Home() {
         ) : null}
 
         {payload?.warnings.length ? (
-          <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-100">
+          <div className="alert-hud mb-3 flex items-start gap-2 border border-amber-400/50 bg-amber-100/70 px-3 py-2 text-xs text-amber-950 dark:border-amber-600/60 dark:bg-amber-950/50 dark:text-amber-100">
             <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
             <span>{payload.warnings.join('；')}</span>
           </div>
         ) : null}
 
-        <section className="overflow-hidden rounded-lg border bg-card shadow-sm">
+        <section className="hud-panel table-panel overflow-hidden border bg-card">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b px-2 py-2 sm:px-3">
             <div>
               <h2 className="text-sm font-bold">權值排行</h2>
@@ -466,18 +477,18 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-2">
               {payload ? (
-                <Badge variant="outline" className="text-muted-foreground">
+                <Badge variant="outline" className="hud-chip text-muted-foreground">
                   成分日期 {formatDate(payload.taifexDataDate)}
                 </Badge>
               ) : null}
-              <Badge variant="outline" className="text-muted-foreground">
+              <Badge variant="outline" className="hud-chip text-muted-foreground">
                 貢獻點數為估算值
               </Badge>
             </div>
           </div>
 
-          <Table className="w-max border-collapse text-sm leading-5 [&_td]:border-r [&_td]:px-1.5 [&_td:last-child]:border-r-0 [&_th]:border-r [&_th]:px-1.5 [&_th:last-child]:border-r-0">
-            <TableHeader className="sticky top-0 z-10 bg-table-header">
+          <Table className="market-table w-max border-collapse text-sm leading-5 [&_td]:border-r [&_td]:px-1.5 [&_td:last-child]:border-r-0 [&_th]:border-r [&_th]:px-1.5 [&_th:last-child]:border-r-0">
+            <TableHeader className="market-table-head sticky top-0 z-10 bg-table-header">
               <TableRow className="hover:bg-transparent">
                 <TableHead className="w-11 text-center">排名</TableHead>
                 <TableHead className="w-14">代碼</TableHead>
@@ -494,7 +505,7 @@ export default function Home() {
                 <TableHead className="w-20 text-right">昨收／基準</TableHead>
                 <TableHead className="w-16 text-right">漲停價</TableHead>
                 <TableHead className="w-16 text-right">跌停價</TableHead>
-                <TableHead className="sticky right-0 z-20 w-12 border-l bg-table-header text-center shadow-[-4px_0_8px_-6px_rgba(0,0,0,0.45)]">
+                <TableHead className="selection-rail sticky right-0 z-20 w-12 border-l text-center">
                   選取
                 </TableHead>
               </TableRow>
@@ -516,7 +527,7 @@ export default function Home() {
                       <TableRow
                         key={row.code}
                         data-state={checked ? 'selected' : undefined}
-                        className="h-12"
+                        className="market-row h-12"
                       >
                         <TableCell className="text-center font-mono text-muted-foreground">
                           {row.rank}
@@ -526,12 +537,12 @@ export default function Home() {
                         </TableCell>
                         <TableCell className="font-semibold">{row.name}</TableCell>
                         <TableCell
-                          className={`text-right font-mono font-bold tabular-nums ${contributionClass(row.upContribution)}`}
+                          className={`impact-number impact-number-up text-right font-mono font-bold tabular-nums ${contributionClass(row.upContribution)}`}
                         >
                           {formatSigned(row.upContribution)}
                         </TableCell>
                         <TableCell
-                          className={`text-right font-mono font-bold tabular-nums ${contributionClass(row.downContribution)}`}
+                          className={`impact-number impact-number-down text-right font-mono font-bold tabular-nums ${contributionClass(row.downContribution)}`}
                         >
                           {formatSigned(row.downContribution)}
                         </TableCell>
@@ -563,8 +574,9 @@ export default function Home() {
                         <TableCell className="text-right font-mono tabular-nums text-market-down-strong">
                           {formatNullable(row.limitDown)}
                         </TableCell>
-                        <TableCell className="sticky right-0 border-l bg-card text-center shadow-[-4px_0_8px_-6px_rgba(0,0,0,0.45)] [tr[data-state=selected]_&]:bg-muted">
+                        <TableCell className="selection-rail sticky right-0 border-l text-center">
                           <Checkbox
+                            className="hud-checkbox"
                             checked={checked}
                             onCheckedChange={(value) =>
                               toggleRow(row.code, value === true)
@@ -596,7 +608,7 @@ export default function Home() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="mt-3"
+                  className="fx-button mt-3"
                   onClick={refreshWeights}
                 >
                   重新讀取
@@ -605,7 +617,7 @@ export default function Home() {
             </div>
           ) : null}
 
-          <footer className="space-y-1 border-t bg-muted/25 px-3 py-3 text-xs leading-5 text-muted-foreground">
+          <footer className="terminal-footer space-y-1 border-t px-3 py-3 text-xs leading-5 text-muted-foreground">
             <p>
               市值與權重依「已發行普通股數－私募股數」× 前一日收盤每日重算；TAIFEX 清單每月底更新。
             </p>
@@ -615,7 +627,7 @@ export default function Home() {
             <p>
               資料來源：
               <a
-                className="underline-offset-2 hover:text-foreground hover:underline"
+                className="terminal-link underline-offset-2 hover:text-foreground hover:underline"
                 href="https://www.taifex.com.tw/cht/2/weightedPropertion"
                 target="_blank"
                 rel="noreferrer"
@@ -624,7 +636,7 @@ export default function Home() {
               </a>
               {' · '}
               <a
-                className="underline-offset-2 hover:text-foreground hover:underline"
+                className="terminal-link underline-offset-2 hover:text-foreground hover:underline"
                 href="https://openapi.twse.com.tw/"
                 target="_blank"
                 rel="noreferrer"
