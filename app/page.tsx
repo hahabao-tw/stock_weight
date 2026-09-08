@@ -1,14 +1,23 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type ChangeEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   AlertTriangle,
   BarChart3,
+  Contrast,
   Database,
   Moon,
   RefreshCw,
   Search,
   Sun,
+  Type,
   X,
 } from 'lucide-react';
 
@@ -26,6 +35,15 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import type { StockWeightRow } from '@/lib/stock-weights';
+import {
+  DEFAULT_FONT_SIZE,
+  getNextThemeMode,
+  MAX_FONT_SIZE,
+  MIN_FONT_SIZE,
+  normalizeFontSize,
+  normalizeThemeMode,
+  type ThemeMode,
+} from '@/lib/ui-preferences';
 
 type WeightsPayload = {
   dataDate: string;
@@ -56,6 +74,23 @@ const priceFormatter = new Intl.NumberFormat('zh-TW', {
   minimumFractionDigits: 0,
   maximumFractionDigits: 2,
 });
+
+const themeLabels: Record<ThemeMode, string> = {
+  light: '日間',
+  dark: '夜間',
+  contrast: '高對比',
+};
+
+function applyThemeMode(mode: ThemeMode) {
+  const root = document.documentElement;
+  root.classList.toggle('dark', mode === 'dark');
+  root.classList.toggle('high-contrast', mode === 'contrast');
+  root.dataset.themeMode = mode;
+}
+
+function applyFontSize(size: number) {
+  document.documentElement.style.setProperty('--user-font-size', `${size}px`);
+}
 
 function formatDate(value?: string) {
   return value ? value.replaceAll('-', '/') : '—';
@@ -114,8 +149,11 @@ export default function Home() {
   const [payload, setPayload] = useState<WeightsPayload | null>(null);
   const [refreshing, setRefreshing] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const largeTextButtonRef = useRef<HTMLButtonElement>(null);
+  const fontSizeSliderRef = useRef<HTMLInputElement>(null);
+  const fontSizeOutputRef = useRef<HTMLOutputElement>(null);
+  const themeModeRef = useRef<ThemeMode>('light');
   const themeButtonRef = useRef<HTMLButtonElement>(null);
+  const themeModeLabelRef = useRef<HTMLSpanElement>(null);
 
   const loadWeights = useCallback(
     async (forceRefresh: boolean, signal?: AbortSignal) => {
@@ -156,33 +194,46 @@ export default function Home() {
   );
 
   useEffect(() => {
-    let prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    let prefersLargeText = false;
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    let savedTheme: string | null = null;
+    let savedFontSize: string | null = null;
+    let legacyLargeText = false;
 
     try {
-      const savedTheme = window.localStorage.getItem('stock-weight-theme');
-      const savedTextSize = window.localStorage.getItem(
+      savedTheme = window.localStorage.getItem('stock-weight-theme');
+      savedFontSize = window.localStorage.getItem('stock-weight-font-size');
+      legacyLargeText =
+        window.localStorage.getItem(
         'stock-weight-large-text',
-      );
-      if (savedTheme) prefersDark = savedTheme === 'dark';
-      prefersLargeText = savedTextSize === 'true';
+        ) === 'true';
     } catch {
       // Storage may be unavailable in privacy mode; the controls still work.
     }
 
-    document.documentElement.classList.toggle('dark', prefersDark);
-    document.documentElement.classList.toggle(
-      'font-large',
-      prefersLargeText,
-    );
-    largeTextButtonRef.current?.setAttribute(
-      'aria-pressed',
-      String(prefersLargeText),
-    );
+    const themeMode = normalizeThemeMode(savedTheme, prefersDark);
+    const fontSize = savedFontSize
+      ? normalizeFontSize(savedFontSize)
+      : legacyLargeText
+        ? 18
+        : DEFAULT_FONT_SIZE;
+
+    applyThemeMode(themeMode);
+    applyFontSize(fontSize);
+    themeModeRef.current = themeMode;
+    if (themeModeLabelRef.current) {
+      themeModeLabelRef.current.textContent = themeLabels[themeMode];
+    }
     themeButtonRef.current?.setAttribute(
-      'aria-pressed',
-      String(prefersDark),
+      'aria-label',
+      `目前${themeLabels[themeMode]}模式，切換顯示模式`,
     );
+    if (fontSizeSliderRef.current) {
+      fontSizeSliderRef.current.value = String(fontSize);
+    }
+    if (fontSizeOutputRef.current) {
+      fontSizeOutputRef.current.value = String(fontSize);
+      fontSizeOutputRef.current.textContent = String(fontSize);
+    }
   }, []);
 
   useEffect(() => {
@@ -234,15 +285,16 @@ export default function Home() {
     void loadWeights(true);
   }
 
-  function toggleLargeText() {
-    const nextValue = document.documentElement.classList.toggle('font-large');
-    largeTextButtonRef.current?.setAttribute(
-      'aria-pressed',
-      String(nextValue),
-    );
+  function changeFontSize(event: ChangeEvent<HTMLInputElement>) {
+    const nextValue = normalizeFontSize(event.currentTarget.value);
+    applyFontSize(nextValue);
+    if (fontSizeOutputRef.current) {
+      fontSizeOutputRef.current.value = String(nextValue);
+      fontSizeOutputRef.current.textContent = String(nextValue);
+    }
     try {
       window.localStorage.setItem(
-        'stock-weight-large-text',
+        'stock-weight-font-size',
         String(nextValue),
       );
     } catch {
@@ -251,13 +303,18 @@ export default function Home() {
   }
 
   function toggleTheme() {
-    const nextValue = document.documentElement.classList.toggle('dark');
-    themeButtonRef.current?.setAttribute('aria-pressed', String(nextValue));
+    const nextMode = getNextThemeMode(themeModeRef.current);
+    applyThemeMode(nextMode);
+    themeModeRef.current = nextMode;
+    if (themeModeLabelRef.current) {
+      themeModeLabelRef.current.textContent = themeLabels[nextMode];
+    }
+    themeButtonRef.current?.setAttribute(
+      'aria-label',
+      `目前${themeLabels[nextMode]}模式，切換顯示模式`,
+    );
     try {
-      window.localStorage.setItem(
-        'stock-weight-theme',
-        nextValue ? 'dark' : 'light',
-      );
+      window.localStorage.setItem('stock-weight-theme', nextMode);
     } catch {
       // Keep the current-session setting when storage is unavailable.
     }
@@ -289,7 +346,7 @@ export default function Home() {
               <p className="hud-kicker hidden text-[10px] font-semibold uppercase sm:block">
                 TAIEX IMPACT // TOP 100
               </p>
-              <h1 className="truncate text-base font-bold tracking-wide sm:text-lg">
+              <h1 className="title-type truncate text-base font-bold tracking-wide sm:text-lg">
                 加權指數權值表
               </h1>
               <p className="truncate text-[11px] text-muted-foreground sm:text-xs">
@@ -312,32 +369,23 @@ export default function Home() {
               </Badge>
             </div>
             <Button
-              ref={largeTextButtonRef}
-              data-font-size-toggle
-              variant="outline"
-              size="icon-lg"
-              className="fx-button size-11"
-              onClick={toggleLargeText}
-              aria-label="切換標準或放大字體"
-              aria-pressed="false"
-              title="切換字體大小"
-            >
-              <span className="font-mono text-sm font-bold" aria-hidden="true">
-                A+
-              </span>
-            </Button>
-            <Button
               ref={themeButtonRef}
               variant="outline"
-              size="icon-lg"
-              className="fx-button size-11"
+              size="lg"
+              className="fx-button h-11 min-w-11 px-2 sm:px-3"
               onClick={toggleTheme}
-              aria-label="切換日間或夜間模式"
-              aria-pressed="false"
-              title="切換日夜模式"
+              aria-label="目前日間模式，切換顯示模式"
+              title="切換日間、夜間或高對比模式"
             >
-              <Sun className="hidden size-5 dark:block" aria-hidden="true" />
-              <Moon className="size-5 dark:hidden" aria-hidden="true" />
+              <Sun className="theme-icon theme-icon-light size-5" aria-hidden="true" />
+              <Moon className="theme-icon theme-icon-dark size-5" aria-hidden="true" />
+              <Contrast
+                className="theme-icon theme-icon-contrast size-5"
+                aria-hidden="true"
+              />
+              <span ref={themeModeLabelRef} className="hidden sm:inline">
+                日間
+              </span>
             </Button>
           </div>
         </div>
@@ -345,36 +393,69 @@ export default function Home() {
 
       <div className="relative z-10 mx-auto max-w-[1800px] px-2 py-3 sm:px-4 sm:py-4">
         <section className="mb-3 grid gap-2 xl:grid-cols-[minmax(340px,1fr)_auto]">
-          <div className="hud-panel flex flex-col justify-between gap-2 border bg-card p-2 sm:flex-row sm:items-center">
-            <div className="relative w-full max-w-md">
-              <Search
-                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-                aria-hidden="true"
-              />
-              <Input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="輸入股票代碼或公司名稱"
-                aria-label="搜尋股票"
-                className="hud-input h-11 bg-background/70 pl-9 pr-9"
-              />
-              {query ? (
-                <button
-                  type="button"
-                  onClick={() => setQuery('')}
-                  className="icon-reaction absolute right-1.5 top-1/2 grid size-8 -translate-y-1/2 place-items-center text-muted-foreground hover:text-foreground"
-                  aria-label="清除搜尋"
-                >
-                  <X className="size-3.5" />
-                </button>
-              ) : null}
-            </div>
-            <div className="flex items-center justify-between gap-2 sm:justify-end">
-              <div className="text-xs leading-5 text-muted-foreground">
-                <span className="block md:hidden">
-                  市場資料 {formatDate(payload?.dataDate)}
+          <div className="hud-panel flex flex-col justify-between gap-2 border bg-card p-2 sm:flex-row sm:items-end">
+            <div className="min-w-0 flex-1">
+              <div className="relative w-full max-w-md">
+                <Search
+                  className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <Input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="輸入股票代碼或公司名稱"
+                  aria-label="搜尋股票"
+                  className="hud-input h-11 bg-background/70 pl-9 pr-9"
+                />
+                {query ? (
+                  <button
+                    type="button"
+                    onClick={() => setQuery('')}
+                    className="icon-reaction absolute right-1.5 top-1/2 grid size-8 -translate-y-1/2 place-items-center text-muted-foreground hover:text-foreground"
+                    aria-label="清除搜尋"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                ) : null}
+              </div>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                <span className="md:hidden">
+                  市場資料 {formatDate(payload?.dataDate)} ·{' '}
                 </span>
-                <span>權重每日重算 · 單位：億元／點</span>
+                權重每日重算 · 單位：億元／點
+              </p>
+            </div>
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2 sm:flex sm:items-end">
+              <div className="font-size-control min-w-0 sm:w-52">
+                <div className="mb-1 flex items-center gap-1.5">
+                  <Type className="size-3.5 text-primary" aria-hidden="true" />
+                  <label htmlFor="font-size-slider" className="text-xs font-semibold">
+                    字級
+                  </label>
+                  <output
+                    ref={fontSizeOutputRef}
+                    htmlFor="font-size-slider"
+                    className="numeric-type ml-auto text-xs font-bold text-primary"
+                  >
+                    {DEFAULT_FONT_SIZE}
+                  </output>
+                </div>
+                <input
+                  ref={fontSizeSliderRef}
+                  id="font-size-slider"
+                  type="range"
+                  min={MIN_FONT_SIZE}
+                  max={MAX_FONT_SIZE}
+                  step="1"
+                  defaultValue={DEFAULT_FONT_SIZE}
+                  onChange={changeFontSize}
+                  className="luxury-range"
+                  aria-label={`調整字級，範圍 ${MIN_FONT_SIZE} 至 ${MAX_FONT_SIZE}`}
+                />
+                <div className="numeric-type flex justify-between text-[10px] text-muted-foreground">
+                  <span>{MIN_FONT_SIZE}</span>
+                  <span>{MAX_FONT_SIZE}</span>
+                </div>
               </div>
               <Button
                 variant="outline"
@@ -413,7 +494,7 @@ export default function Home() {
                 ) : null}
               </div>
               <p
-                className="mt-1 truncate text-sm font-semibold"
+                className="company-name mt-1 truncate text-sm font-semibold"
                 title={selectedRows
                   .map((row) => `${row.code} ${row.name}`)
                   .join('、')}
@@ -468,7 +549,7 @@ export default function Home() {
         <section className="hud-panel table-panel overflow-hidden border bg-card">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b px-2 py-2 sm:px-3">
             <div>
-              <h2 className="text-sm font-bold">權值排行</h2>
+              <h2 className="section-title text-sm font-bold">權值排行</h2>
               <p className="text-xs text-muted-foreground" aria-live="polite">
                 {payload
                   ? `顯示 ${visibleRows.length}／${rows.length} 檔 · 加權昨收 ${decimalFormatter.format(payload.meta.taiexClose)}`
@@ -535,7 +616,9 @@ export default function Home() {
                         <TableCell className="font-mono font-bold text-code">
                           {row.code}
                         </TableCell>
-                        <TableCell className="font-semibold">{row.name}</TableCell>
+                        <TableCell className="company-name font-semibold">
+                          {row.name}
+                        </TableCell>
                         <TableCell
                           className={`impact-number impact-number-up text-right font-mono font-bold tabular-nums ${contributionClass(row.upContribution)}`}
                         >
