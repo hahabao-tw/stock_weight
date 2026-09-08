@@ -36,7 +36,8 @@ import {
 } from '@/components/ui/table';
 import type { StockWeightRow } from '@/lib/stock-weights';
 import {
-  DEFAULT_FONT_SIZE,
+  DEFAULT_DESKTOP_FONT_SIZE,
+  getDefaultFontSize,
   getNextThemeMode,
   MAX_FONT_SIZE,
   MIN_FONT_SIZE,
@@ -194,28 +195,25 @@ export default function Home() {
   );
 
   useEffect(() => {
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const prefersDark = window.matchMedia(
+      '(prefers-color-scheme: dark)',
+    ).matches;
+    const isMobile = window.matchMedia('(max-width: 639px)').matches;
     let savedTheme: string | null = null;
     let savedFontSize: string | null = null;
-    let legacyLargeText = false;
 
     try {
       savedTheme = window.localStorage.getItem('stock-weight-theme');
       savedFontSize = window.localStorage.getItem('stock-weight-font-size');
-      legacyLargeText =
-        window.localStorage.getItem(
-        'stock-weight-large-text',
-        ) === 'true';
     } catch {
       // Storage may be unavailable in privacy mode; the controls still work.
     }
 
     const themeMode = normalizeThemeMode(savedTheme, prefersDark);
+    const defaultFontSize = getDefaultFontSize(isMobile);
     const fontSize = savedFontSize
-      ? normalizeFontSize(savedFontSize)
-      : legacyLargeText
-        ? 18
-        : DEFAULT_FONT_SIZE;
+      ? normalizeFontSize(savedFontSize, defaultFontSize)
+      : defaultFontSize;
 
     applyThemeMode(themeMode);
     applyFontSize(fontSize);
@@ -293,10 +291,7 @@ export default function Home() {
       fontSizeOutputRef.current.textContent = String(nextValue);
     }
     try {
-      window.localStorage.setItem(
-        'stock-weight-font-size',
-        String(nextValue),
-      );
+      window.localStorage.setItem('stock-weight-font-size', String(nextValue));
     } catch {
       // Keep the current-session setting when storage is unavailable.
     }
@@ -377,8 +372,14 @@ export default function Home() {
               aria-label="目前日間模式，切換顯示模式"
               title="切換日間、夜間或高對比模式"
             >
-              <Sun className="theme-icon theme-icon-light size-5" aria-hidden="true" />
-              <Moon className="theme-icon theme-icon-dark size-5" aria-hidden="true" />
+              <Sun
+                className="theme-icon theme-icon-light size-5"
+                aria-hidden="true"
+              />
+              <Moon
+                className="theme-icon theme-icon-dark size-5"
+                aria-hidden="true"
+              />
               <Contrast
                 className="theme-icon theme-icon-contrast size-5"
                 aria-hidden="true"
@@ -429,7 +430,10 @@ export default function Home() {
               <div className="font-size-control min-w-0 sm:w-52">
                 <div className="mb-1 flex items-center gap-1.5">
                   <Type className="size-3.5 text-primary" aria-hidden="true" />
-                  <label htmlFor="font-size-slider" className="text-xs font-semibold">
+                  <label
+                    htmlFor="font-size-slider"
+                    className="text-xs font-semibold"
+                  >
                     字級
                   </label>
                   <output
@@ -437,7 +441,7 @@ export default function Home() {
                     htmlFor="font-size-slider"
                     className="numeric-type ml-auto text-xs font-bold text-primary"
                   >
-                    {DEFAULT_FONT_SIZE}
+                    {DEFAULT_DESKTOP_FONT_SIZE}
                   </output>
                 </div>
                 <input
@@ -447,7 +451,7 @@ export default function Home() {
                   min={MIN_FONT_SIZE}
                   max={MAX_FONT_SIZE}
                   step="1"
-                  defaultValue={DEFAULT_FONT_SIZE}
+                  defaultValue={DEFAULT_DESKTOP_FONT_SIZE}
                   onChange={changeFontSize}
                   className="luxury-range"
                   aria-label={`調整字級，範圍 ${MIN_FONT_SIZE} 至 ${MAX_FONT_SIZE}`}
@@ -534,14 +538,20 @@ export default function Home() {
             className="alert-hud mb-3 flex items-start gap-2 border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
             role="alert"
           >
-            <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            <AlertTriangle
+              className="mt-0.5 size-4 shrink-0"
+              aria-hidden="true"
+            />
             <span>{error}</span>
           </div>
         ) : null}
 
         {payload?.warnings.length ? (
           <div className="alert-hud mb-3 flex items-start gap-2 border border-amber-400/50 bg-amber-100/70 px-3 py-2 text-xs text-amber-950 dark:border-amber-600/60 dark:bg-amber-950/50 dark:text-amber-100">
-            <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+            <AlertTriangle
+              className="mt-0.5 size-3.5 shrink-0"
+              aria-hidden="true"
+            />
             <span>{payload.warnings.join('；')}</span>
           </div>
         ) : null}
@@ -558,11 +568,17 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-2">
               {payload ? (
-                <Badge variant="outline" className="hud-chip text-muted-foreground">
+                <Badge
+                  variant="outline"
+                  className="hud-chip text-muted-foreground"
+                >
                   成分日期 {formatDate(payload.taifexDataDate)}
                 </Badge>
               ) : null}
-              <Badge variant="outline" className="hud-chip text-muted-foreground">
+              <Badge
+                variant="outline"
+                className="hud-chip text-muted-foreground"
+              >
                 貢獻點數為估算值
               </Badge>
             </div>
@@ -702,10 +718,12 @@ export default function Home() {
 
           <footer className="terminal-footer space-y-1 border-t px-3 py-3 text-xs leading-5 text-muted-foreground">
             <p>
-              市值與權重依「已發行普通股數－私募股數」× 前一日收盤每日重算；TAIFEX 清單每月底更新。
+              市值與權重依「已發行普通股數－私募股數」×
+              前一日收盤每日重算；TAIFEX 清單每月底更新。
             </p>
             <p>
-              貢獻點數＝個股權重 × 加權昨收 ×（漲跌停價 ÷ 昨收基準－1）。＊表示除權息等事件調整過基準價。
+              貢獻點數＝個股權重 × 加權昨收 ×（漲跌停價 ÷
+              昨收基準－1）。＊表示除權息等事件調整過基準價。
             </p>
             <p>
               資料來源：
